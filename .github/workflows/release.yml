@@ -48,6 +48,7 @@ jobs:
       - run: npm test
       - run: npm run package
       - name: Test the packaged app
+        timeout-minutes: 3
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: '"release/$VERSION/Moss-darwin-arm64/Moss.app/Contents/MacOS/Moss" --smoke-test'

@@ -123,6 +123,9 @@ async function smokeTest(){
   const js=(s:string)=>panel.webContents.executeJavaScript(s);
   const waitFor=async(expression:string)=>{for(let i=0;i<100;i++){if(await js(expression))return;await new Promise(r=>setTimeout(r,30));}throw new Error(`UI condition failed: ${expression}`);};
   try {
+    // Hosted Macs may enable Reduce Motion; test both modes explicitly.
+    panel.webContents.debugger.attach('1.3');
+    await panel.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
     await waitFor('!!document.querySelector("#start") && !document.querySelector("#start").disabled');
     assert.equal(panel.isVisible(),true);assert.equal(pet.isVisible(),false);
     assert.equal(pet.isAlwaysOnTop(),true);assert.equal(pet.getBounds().width,240);
@@ -149,15 +152,19 @@ async function smokeTest(){
     assert.equal(panel.isVisible(),true);assert.equal(pet.isVisible(),false);assert.equal(timer.state.session.deadline,deadlineBeforeCompact);
     await js('document.querySelector("#close").click()');await waitFor('window.moss.getState().then(s=>s.compact)');
     assert.equal(pet.isVisible(),true);showPanel();assert.equal(pet.isVisible(),false);
+    await waitFor('document.querySelector(".garden-spade").getAnimations().length > 0');
     for(const [name,time] of [['digging',1100],['watering',5200]] as const){
-      await js(`document.getAnimations().forEach(a=>{a.pause();a.currentTime=${time};})`);
+      await js(`Promise.all(document.getAnimations().map(async a=>{a.pause();await a.ready;a.currentTime=${time};}))`);
       await new Promise(r=>setTimeout(r,50));
       const part=name==='digging'?'.garden-spade':'.garden-tool';
       assert.equal(await js(`getComputedStyle(document.querySelector('${part}')).opacity`),'1');
       assert.notEqual(await js(`getComputedStyle(document.querySelector('${part}')).display`),'none');
       fs.writeFileSync(path.join(out,`moss-action-${name}.png`),(await panel.webContents.capturePage()).toPNG());
     }
-    await js('document.getAnimations().forEach(a=>a.play())');
+    await panel.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+    assert.equal(await js('getComputedStyle(document.querySelector(".garden-spade")).animationName'),'none');
+    await panel.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+    panel.webContents.debugger.detach();
     clock!+=30000;tick();const before=timer.remaining();
     await js('document.querySelector("#pause").click()');await waitFor('document.body.dataset.status === "paused"');
     assert.equal(await js('getComputedStyle(document.querySelector(".garden-tool")).opacity'),'0');
@@ -205,8 +212,8 @@ async function smokeTest(){
     assert.deepEqual(image,[2172,724]);
     assert.equal((await pet.webContents.capturePage()).toBitmap()[3],0);
     fs.writeFileSync(path.join(out,'smoke-result.json'),JSON.stringify({passed:true,checks:['minimize to avatar and click to restore without interrupting timer','native floating window','renderer isolation','start via controls','pause/resume','sleep pause','one-time completion credit','saved progress','break cycle','demo exclusion','follow option on/off','native full-screen and Stage Manager membership','visibility preference persistence','invalid IPC input','layout width'],metrics},null,2));
-    console.log('MOSS_SMOKE_PASSED');app.exit(0);
-  } catch(e) {console.error(e);app.exit(1);}
+    console.log('MOSS_SMOKE_PASSED');quitting=true;panel.destroy();pet.destroy();app.exit(0);
+  } catch(e) {console.error(e);quitting=true;panel.destroy();pet.destroy();app.exit(1);}
 }
 if(!app.requestSingleInstanceLock()){app.quit();}else{
   app.on('second-instance',()=>{if(pet){showPanel();}});
