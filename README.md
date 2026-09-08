@@ -1,8 +1,12 @@
 # Moss
 
-A little company while you focus. Moss is a small leaf-eared creature that floats on your desktop, reads alongside you during focus sessions, takes breaks, and celebrates the time you make for your work.
+A little company while you focus. Moss is a small leaf-eared creature that floats on your desktop, plants and waters a little garden during focus sessions, takes breaks, and celebrates the time you make for your work.
 
 **Native desktop prototype, built for macOS on Apple Silicon.** No account, API key, new hardware, or internet connection is required to use it.
+
+## Download
+
+Get the macOS Apple Silicon app from [GitHub Releases](https://github.com/ramzyraz/moss/releases/latest). Download the ZIP, extract it, and move Moss.app to Applications. Builds are currently unsigned and not notarized; macOS may block opening them. See the release notes before installing.
 
 ## Run
 
@@ -17,7 +21,7 @@ To produce a standalone macOS app:
 
 ```sh
 npm run package
-open release/0.1.1/Moss-darwin-arm64/Moss.app
+open release/0.2.1/Moss-darwin-arm64/Moss.app
 ```
 
 The local build is unsigned and not notarized. Distribution to other Macs needs a signing/notarization workflow. Windows, Linux, and Intel Mac builds have not been validated.
@@ -27,13 +31,13 @@ The local build is unsigned and not notarized. Distribution to other Macs needs 
 - Click Moss or the little timer badge to open focus controls.
 - Drag Moss, or use the small grip below the timer, to move it.
 - Choose 1–120 minutes and optionally write one intention.
-- Pause and resume whenever you need; completed focus sessions earn a leaf milestone.
+- Pause and resume whenever you need; completed focus sessions add a permanent flower.
 - Start a break yourself after a session. A break never starts the next focus session automatically.
 - Try the 20-second demo (and its 10-second break) without changing saved progress.
 - Close controls to leave just the creature. The leaf menu-bar icon can reopen controls, hide/show Moss, pause/resume, or quit.
 - Preferences include **Follow me across apps**, an optional completion chime, and break length. The follow option keeps Moss above windows and on other desktops, including full-screen apps and Stage Manager. Turn it off to keep Moss on one desktop with normal window ordering. The choice is saved; existing floating-window preferences are preserved.
 
-Moss measures time you choose to spend in a session. It does not inspect your screen, keyboard, browsing, or app usage. The growing home is a later idea; this version saves session totals and five leaf milestones.
+Moss measures time you choose to spend in a session. It does not inspect your screen, keyboard, browsing, or app usage. Each completed session adds a flower to your saved garden. Houses and decorations are future ideas.
 
 ## Timer behavior and data
 
@@ -84,3 +88,7 @@ Garden art is original SVG/CSS with planting, tending, and watering motion, usin
 ## Gardening motion and window fix (0.2.1)
 
 Full controls and the floating garden now appear one at a time. Close or minimize controls to return to the compact garden. During active focus, Moss repeats an eight-second sequence of reaching, digging, sowing (seed stage), and watering with falling drops. Pauses and breaks stop the gardening actions; reduced-motion preferences remain respected. Growth stages still depend on active focus time, independently of animation loops.
+
+## Contributions
+
+Bug reports and focused pull requests are welcome. Branch changes and official releases are owner-controlled. Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change and [RELEASING.md](RELEASING.md) for the release process.
