@@ -207,7 +207,17 @@ async function smokeTest(){
     fs.writeFileSync(path.join(out,'moss-controls.png'),(await panel.webContents.capturePage()).toPNG());
     const metrics=await js('({width:innerWidth,scroll:document.documentElement.scrollWidth,image:getComputedStyle(document.querySelector(".creature")).backgroundImage})');
     assert.ok(metrics.scroll<=metrics.width);assert.ok(metrics.image.includes('moss-sprites.png'));
-    assert.ok(await js('document.querySelector("#demo").getBoundingClientRect().bottom <= innerHeight'));
+    // Small displays legitimately scroll: verify controls remain reachable and usable.
+    for(const [width,height] of [[400,790],[360,540]]){
+      panel.setSize(width,height);
+      await waitFor(`innerWidth === ${width}`);
+      await js('document.querySelector("#demo").scrollIntoView({block:"center"})');
+      await waitFor('(()=>{const r=document.querySelector("#demo").getBoundingClientRect();return r.top>=0 && r.bottom<=innerHeight && document.documentElement.scrollWidth<=innerWidth;})()');
+      fs.writeFileSync(path.join(out,`moss-layout-${width}x${height}.png`),(await panel.webContents.capturePage()).toPNG());
+      await js('document.querySelector("#demo").click()');await waitFor('document.body.dataset.status === "running"');
+      assert.equal(timer.state.session.demo,true);
+      await js('window.moss.command({type:"end"})');await waitFor('document.body.dataset.status === "idle"');
+    }
     const image=await js('new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve([image.naturalWidth,image.naturalHeight]);image.onerror=reject;image.src="../assets/moss-sprites.png";})');
     assert.deepEqual(image,[2172,724]);
     assert.equal((await pet.webContents.capturePage()).toBitmap()[3],0);
