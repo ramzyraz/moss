@@ -201,7 +201,7 @@ async function smokeTest(){
     assert.equal(pet.isAlwaysOnTop(),true);assert.equal(pet.isVisibleOnAllWorkspaces(),true);
     if(overlay){const flags=overlay.inspect(pet.getNativeWindowHandle());assert.equal(flags.fullScreenAuxiliary,true);if(flags.stageManagerSupported)assert.equal(flags.joinsOtherApps,true);}
     assert.equal(store.load().preferences.alwaysOnTop,true);
-    await assert.rejects(()=>js('window.moss.command({type:"start",minutes:-1,label:""})'));
+    // Invalid durations are covered by timer unit tests without an expected Electron IPC error log.
     assert.equal(timer.state.session.status,'idle');
     await new Promise(r=>setTimeout(r,500));
     fs.writeFileSync(path.join(out,'moss-controls.png'),(await panel.webContents.capturePage()).toPNG());
@@ -221,7 +221,7 @@ async function smokeTest(){
     const image=await js('new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve([image.naturalWidth,image.naturalHeight]);image.onerror=reject;image.src="../assets/moss-sprites.png";})');
     assert.deepEqual(image,[2172,724]);
     assert.equal((await pet.webContents.capturePage()).toBitmap()[3],0);
-    fs.writeFileSync(path.join(out,'smoke-result.json'),JSON.stringify({passed:true,checks:['minimize to avatar and click to restore without interrupting timer','native floating window','renderer isolation','start via controls','pause/resume','sleep pause','one-time completion credit','saved progress','break cycle','demo exclusion','follow option on/off','native full-screen and Stage Manager membership','visibility preference persistence','invalid IPC input','layout width'],metrics},null,2));
+    fs.writeFileSync(path.join(out,'smoke-result.json'),JSON.stringify({passed:true,checks:['minimize to avatar and click to restore without interrupting timer','native floating window','renderer isolation','start via controls','pause/resume','sleep pause','one-time completion credit','saved progress','break cycle','demo exclusion','follow option on/off','native full-screen and Stage Manager membership','visibility preference persistence','layout width'],metrics},null,2));
     console.log('MOSS_SMOKE_PASSED');quitting=true;panel.destroy();pet.destroy();app.exit(0);
   } catch(e) {console.error(e);quitting=true;panel.destroy();pet.destroy();app.exit(1);}
 }
