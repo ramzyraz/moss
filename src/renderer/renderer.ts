@@ -8,7 +8,7 @@ const app=$('app');
 const leaf='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4C9 3 4 7 5 13c1 6 10 7 13 0 1-3 1-6 1-9Z"/><path d="M5 21 15 10"/></svg>';
 // Code-drawn garden assets stay crisp at desktop-avatar size.
 function plant(stage:number,index=0){return `<svg viewBox="0 0 64 72" aria-hidden="true" class="plant-art"><path fill="#443128" d="M7 62h50v6H7z"/><path fill="#896047" d="M12 59h40v5H12z"/>${stage===0?'<path fill="#e4c185" d="M29 55h7v5h-7z"/>':`<path stroke="#8cb86b" stroke-width="5" fill="none" d="M32 60V${stage===1?43:24}"/><path fill="#9dca78" d="M31 51H20V40h5v5h7zm3-9h11V31h-6v5h-5z"/>${stage>=2?`<path fill="${stage===2?'#bbd88a':['#efb0c3','#f1d180','#bcb0ef'][index%3]}" d="M25 13h14v7h7v14h-7v7H25v-7h-7V20h7z"/><path fill="#f8e7a1" d="M28 23h8v9h-8z"/>`:''}`}</svg>`;}
-const toolsArt=`<span class="garden-tool" aria-hidden="true"><svg viewBox="0 0 60 48"><path fill="none" stroke="#9fc5b1" stroke-width="5" d="M14 21V9h19v12"/><path fill="#719d96" d="M8 18h28v24H8zM34 24l17-12 5 7-20 19z"/><path fill="#c2d7bb" d="M49 11h9v10h-9z"/></svg></span><span class="water-drops" aria-hidden="true">⋮</span><span class="planting-seed" aria-hidden="true"></span>`;
+const toolsArt=`<span class="gardening-arm" aria-hidden="true"></span><span class="garden-spade" aria-hidden="true"><svg viewBox="0 0 20 48"><path stroke="#bb9665" stroke-width="6" d="M10 4v27"/><path fill="#a7b9ae" stroke="#52675c" stroke-width="2" d="M3 25h14v13l-7 8-7-8z"/></svg></span><span class="garden-tool" aria-hidden="true"><svg viewBox="0 0 60 48"><path fill="none" stroke="#9fc5b1" stroke-width="5" d="M14 21V9h19v12"/><path fill="#719d96" d="M8 18h28v24H8zM34 24l17-12 5 7-20 19z"/><path fill="#c2d7bb" d="M49 11h9v10h-9z"/></svg></span><span class="water-drops" aria-hidden="true"><i></i><i></i><i></i></span><span class="planting-seed" aria-hidden="true"></span>`;
 const patch=`<span class="garden-soil"></span><span class="current-plant">${plant(0)}</span>${toolsArt}`;
 let lastPlant='',gardenPage=0,lastGarden='';
 app.innerHTML=isPet?`
@@ -59,7 +59,7 @@ function update(s:Snapshot){
   if(isPet){document.body.classList.toggle('avatar-only',!!s.compact);$('pet-time').textContent=a.status==='idle'?'Ready when you are':a.status==='completed'?a.phase==='focus'?'A little more grown ✦':'Break complete':`${a.status==='paused'?'Paused · ':a.demo?'Demo · ':''}${formatTime(a.remainingMs)}`;return;}
   if(!hydrated){$<HTMLInputElement>('minutes').value=String(s.preferences.focusMinutes);$<HTMLInputElement>('intention').value=a.label;hydrated=true;}
   const idle=a.status==='idle',active=a.status==='running'||a.status==='paused',done=a.status==='completed';
-  $('greeting').textContent=greeting;$('message').textContent=message;
+  $('greeting').textContent=greeting;$('message').textContent=s.garden.tending?'Moss is planting, tending, and watering.':message;
   $('phase-label').textContent=a.demo?'A TINY PRACTICE SESSION':idle?'MAKE A LITTLE ROOM FOR FOCUS':a.phase==='break'?'REST IS PART OF THE WORK':done?'ONE SMALL PROMISE, KEPT':'IN GOOD COMPANY';
   $('time').textContent=formatTime(idle?(Number.isFinite(minutesInput())?minutesInput():25)*60000:a.remainingMs);
   $('timer-caption').textContent=done?'beautifully done':a.status==='paused'?'saved for later':a.phase==='break'?'of breathing room':'of quiet focus';

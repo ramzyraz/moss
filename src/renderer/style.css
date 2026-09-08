@@ -16,3 +16,23 @@
 @media(prefers-reduced-motion:reduce){.tending .creature,.tending .garden-tool,.tending .water-drops,.tending .planting-seed{animation:none!important}.tending:not([data-stage="0"]) .garden-tool{opacity:1;transform:rotate(17deg)}}
 
 .pet-hit .creature{top:20px}
+
+/* Eight-second gardening choreography, independent of the growth clock. */
+.gardening-arm{position:absolute;left:calc(50% - 16px);bottom:38px;width:31px;height:14px;border:3px solid #344a25;background:#bbd987;border-radius:45%;z-index:6;transform-origin:5px 7px;opacity:0;pointer-events:none}.garden-spade{position:absolute;left:calc(50% + 19px);bottom:20px;width:17px;height:38px;z-index:5;opacity:0;transform-origin:50% 15%;pointer-events:none}.garden-spade svg{width:100%;height:100%}.pet-hit .gardening-arm{left:67px;bottom:38px}.pet-hit .garden-spade{left:106px;bottom:20px}
+body.tending .creature{animation:garden-work 8s ease-in-out infinite}
+body.tending .gardening-arm{animation:garden-reach 8s ease-in-out infinite}
+body.tending .garden-spade{animation:garden-dig 8s ease-in-out infinite}
+body.tending .garden-tool{display:block;animation:garden-pour 8s ease-in-out infinite}
+body.tending .water-drops{display:block;animation:garden-rain 8s linear infinite}
+body.tending[data-stage="0"] .planting-seed{animation:garden-sow 8s ease-in-out infinite}
+.water-drops{width:26px;height:29px;font-size:0;bottom:14px}.pet-hit .water-drops{bottom:14px}.water-drops i{position:absolute;width:3px;height:6px;border-radius:2px;background:#a8e1f2;top:0;left:2px}.water-drops i:nth-child(2){left:10px;top:6px}.water-drops i:nth-child(3){left:18px;top:1px}
+body.tending .water-drops i{animation:falling-water .55s linear infinite}.water-drops i:nth-child(2){animation-delay:-.18s!important}.water-drops i:nth-child(3){animation-delay:-.36s!important}
+@keyframes garden-work{0%,100%{transform:translate(0,0) rotate(0)}10%,30%{transform:translate(15px,7px) rotate(12deg)}18%,38%{transform:translate(10px,2px) rotate(4deg)}47%{transform:translate(0,0) rotate(-4deg)}57%,76%{transform:translate(10px,2px) rotate(6deg)}88%{transform:translate(0,-3px) rotate(-3deg)}}
+@keyframes garden-reach{0%,90%,100%{opacity:0;transform:rotate(0)}7%,35%{opacity:1;transform:translate(15px,9px) rotate(30deg)}20%,43%{opacity:1;transform:translate(10px,2px) rotate(-12deg)}50%{opacity:1;transform:translate(0,-3px) rotate(-18deg)}60%,77%{opacity:1;transform:translate(4px,2px) rotate(12deg)}84%{opacity:0;transform:rotate(0)}}
+@keyframes garden-dig{0%,45%,100%{opacity:0;transform:rotate(-30deg)}6%,25%{opacity:1;transform:translate(0,-7px) rotate(-25deg)}14%,35%{opacity:1;transform:translate(7px,10px) rotate(10deg)}42%{opacity:0;transform:translate(0,-5px) rotate(-25deg)}}
+@keyframes garden-pour{0%,44%,90%,100%{opacity:0;transform:translate(-8px,4px) rotate(-25deg)}50%{opacity:1;transform:translate(-6px,0) rotate(-15deg)}59%,76%{opacity:1;transform:translate(4px,5px) rotate(24deg)}84%{opacity:1;transform:translate(-6px,0) rotate(-15deg)}}
+@keyframes garden-rain{0%,56%,80%,100%{opacity:0}60%,76%{opacity:1}}
+@keyframes falling-water{from{transform:translate(0,-5px);opacity:1}to{transform:translate(5px,20px);opacity:0}}
+@keyframes garden-sow{0%,17%,42%,100%{opacity:0;transform:translate(-33px,-2px)}22%{opacity:1;transform:translate(-15px,-10px)}36%{opacity:1;transform:translate(0,40px)}40%{opacity:0;transform:translate(0,40px)}}
+@media(prefers-reduced-motion:reduce){body.tending .creature,body.tending .gardening-arm,body.tending .garden-spade,body.tending .garden-tool,body.tending .water-drops,body.tending .planting-seed,body.tending .water-drops i{animation:none!important}body.tending .garden-tool{opacity:1;transform:rotate(15deg)}}
+body.tending[data-stage] .garden-tool,body.tending[data-stage] .water-drops{display:block}.gardening-arm{bottom:23px}.pet-hit .gardening-arm{bottom:23px}.garden-tool,.pet-hit .garden-tool{bottom:23px}

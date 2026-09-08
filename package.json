@@ -1,7 +1,7 @@
 {
   "name": "moss-focus",
   "productName": "Moss",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A small desktop creature that keeps you company while you focus.",
   "private": true,
   "main": "dist/main.js",
@@ -10,7 +10,7 @@
     "start": "npm run build && electron .",
     "test": "npm run build && node --test tests/*.test.cjs",
     "smoke": "npm run build && electron . --smoke-test",
-    "package": "npm run build && electron-packager . Moss --platform=darwin --arch=arm64 --out=release/0.2.0 --overwrite --prune=true --ignore='^/(release|tests|src|scripts|native|artifacts|.git)(/|$)' --app-bundle-id=dev.moss.focus --app-category-type=public.app-category.productivity --icon=assets/moss.icns --asar.unpack='**/*.node'"
+    "package": "npm run build && electron-packager . Moss --platform=darwin --arch=arm64 --out=release/0.2.1 --overwrite --prune=true --ignore='^/(release|tests|src|scripts|native|artifacts|.git)(/|$)' --app-bundle-id=dev.moss.focus --app-category-type=public.app-category.productivity --icon=assets/moss.icns --asar.unpack='**/*.node'"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",

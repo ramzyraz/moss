@@ -80,3 +80,7 @@ Moss plants and waters a flower during focus. Four stages follow active session 
 Each completed focus session adds one permanent flower. The garden is reconstructed from the saved lifetime session count, so existing sessions become flowers automatically and history trimming cannot remove flowers. Patches hold 12 flowers; arrow controls browse every patch. Colors alternate deterministically. Breaks and the 20-second demo never add flowers. Compact mode shows Moss and the active planting patch; click it to open the saved garden and controls.
 
 Garden art is original SVG/CSS with planting, tending, and watering motion, using the existing Moss character artwork. Reduced-motion settings disable animation while retaining visible growth stages. This first release has one flower species; houses, vegetables, and decorations are not implemented.
+
+## Gardening motion and window fix (0.2.1)
+
+Full controls and the floating garden now appear one at a time. Close or minimize controls to return to the compact garden. During active focus, Moss repeats an eight-second sequence of reaching, digging, sowing (seed stage), and watering with falling drops. Pauses and breaks stop the gardening actions; reduced-motion preferences remain respected. Growth stages still depend on active focus time, independently of animation loops.

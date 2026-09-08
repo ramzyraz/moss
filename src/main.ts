@@ -50,9 +50,9 @@ function showPanel(){
   const b=pet.getBounds(),a=screen.getDisplayMatching(b).workArea;
   const size=panel.getBounds();
   panel.setPosition(Math.round(Math.max(a.x,Math.min(b.x-160,a.x+a.width-size.width))),Math.round(Math.max(a.y,Math.min(b.y-350,a.y+a.height-size.height))));
-  panel.show();panel.focus();emit();
+  stopDrag();pet.hide();panel.show();panel.focus();emit();refreshTray();
 }
-function showPet(){pet.showInactive();refreshTray();}
+function showPet(){collapsePanel();}
 function refreshTray(){if(!tray)return;const s=timer.state.session;tray.setToolTip(`Moss · ${s.status==='running'?s.phase==='focus'?'Focusing':'Taking a break':'Your focus companion'}`);tray.setContextMenu(Menu.buildFromTemplate([
   {label:'Open Moss',click:showPanel},
   {label:pet?.isVisible()?'Hide creature':'Show creature',click:()=>{pet.isVisible()?pet.hide():showPet();refreshTray();}},
@@ -101,6 +101,8 @@ async function createWindows(){
   pet=new BrowserWindow({width:240,height:270,...bounded,focusable:false,acceptFirstMouse:true,transparent:true,backgroundColor:'#00000000',frame:false,hasShadow:false,resizable:false,maximizable:false,minimizable:false,fullscreenable:false,skipTaskbar:true,alwaysOnTop:timer.state.preferences.alwaysOnTop,show:false,title:'Moss companion',webPreferences});
   applyVisibility();
   panel=new BrowserWindow({width:400,height:Math.min(790,area.height-30),minWidth:360,minHeight:540,frame:false,transparent:false,backgroundColor:'#17211e',resizable:true,show:false,title:'Moss · Focus companion',webPreferences});
+  panel.on('show',()=>{if(panel.isVisible()){pet.hide();emit();refreshTray();}});
+  panel.on('restore',()=>{if(panel.isVisible()){pet.hide();emit();refreshTray();}});
   panel.on('close',e=>{if(!quitting){e.preventDefault();collapsePanel();}});
   pet.on('close',e=>{if(!quitting){e.preventDefault();pet.hide();refreshTray();}});
   pet.on('moved',()=>{if(!drag)savePosition();});pet.on('blur',stopDrag);
@@ -112,7 +114,7 @@ async function createWindows(){
   }
   registerIPC();
   await Promise.all([pet.loadFile(page,{query:{view:'pet'}}),panel.loadFile(page,{query:{view:'panel'}})]);
-  pet.showInactive();showPanel();
+  showPanel();
   tray=new Tray(icon());tray.on('click',()=>showPanel());refreshTray();
   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Moss',submenu:[{label:'Show creature',click:showPet},{label:'Open focus controls',click:showPanel},{type:'separator'},{role:'quit'}]},{role:'editMenu'},{label:'View',submenu:[{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'}]}]));
 }
@@ -122,6 +124,7 @@ async function smokeTest(){
   const waitFor=async(expression:string)=>{for(let i=0;i<100;i++){if(await js(expression))return;await new Promise(r=>setTimeout(r,30));}throw new Error(`UI condition failed: ${expression}`);};
   try {
     await waitFor('!!document.querySelector("#start") && !document.querySelector("#start").disabled');
+    assert.equal(panel.isVisible(),true);assert.equal(pet.isVisible(),false);
     assert.equal(pet.isAlwaysOnTop(),true);assert.equal(pet.getBounds().width,240);
     if(overlay){
       const flags=overlay.inspect(pet.getNativeWindowHandle());
@@ -143,9 +146,22 @@ async function smokeTest(){
     fs.writeFileSync(path.join(out,'moss-compact.png'),(await pet.webContents.capturePage()).toPNG());
     await petJS('document.querySelector("#pet-open").click()');
     await waitFor('window.moss.getState().then(s=>!s.compact)');
-    assert.equal(panel.isVisible(),true);assert.equal(timer.state.session.deadline,deadlineBeforeCompact);
+    assert.equal(panel.isVisible(),true);assert.equal(pet.isVisible(),false);assert.equal(timer.state.session.deadline,deadlineBeforeCompact);
+    await js('document.querySelector("#close").click()');await waitFor('window.moss.getState().then(s=>s.compact)');
+    assert.equal(pet.isVisible(),true);showPanel();assert.equal(pet.isVisible(),false);
+    for(const [name,time] of [['digging',1100],['watering',5200]] as const){
+      await js(`document.getAnimations().forEach(a=>{a.pause();a.currentTime=${time};})`);
+      await new Promise(r=>setTimeout(r,50));
+      const part=name==='digging'?'.garden-spade':'.garden-tool';
+      assert.equal(await js(`getComputedStyle(document.querySelector('${part}')).opacity`),'1');
+      assert.notEqual(await js(`getComputedStyle(document.querySelector('${part}')).display`),'none');
+      fs.writeFileSync(path.join(out,`moss-action-${name}.png`),(await panel.webContents.capturePage()).toPNG());
+    }
+    await js('document.getAnimations().forEach(a=>a.play())');
     clock!+=30000;tick();const before=timer.remaining();
     await js('document.querySelector("#pause").click()');await waitFor('document.body.dataset.status === "paused"');
+    assert.equal(await js('getComputedStyle(document.querySelector(".garden-tool")).opacity'),'0');
+    assert.equal(await js('getComputedStyle(document.querySelector(".garden-spade")).animationName'),'none');
     clock!+=90000;tick();assert.equal(timer.remaining(),before);
     await js('document.querySelector("#resume").click()');await waitFor('document.body.dataset.status === "running"');
     timer.pause('sleep');save();emit();await waitFor('document.body.dataset.status === "paused"');assert.equal(timer.state.session.pauseReason,'sleep');
@@ -193,7 +209,7 @@ async function smokeTest(){
   } catch(e) {console.error(e);app.exit(1);}
 }
 if(!app.requestSingleInstanceLock()){app.quit();}else{
-  app.on('second-instance',()=>{if(pet){showPet();showPanel();}});
+  app.on('second-instance',()=>{if(pet){showPanel();}});
   app.whenReady().then(async()=>{
     store=new StateStore(path.join(app.getPath('userData'),'progress.json'));timer=new FocusTimer(store.load(),()=>clock??Date.now());
     session.defaultSession.setPermissionRequestHandler((_w,_p,cb)=>cb(false));session.defaultSession.setPermissionCheckHandler(()=>false);
@@ -202,7 +218,7 @@ if(!app.requestSingleInstanceLock()){app.quit();}else{
     powerMonitor.on('resume',()=>{emit();refreshTray();});
     screen.on('display-removed',()=>{const [x,y]=pet.getPosition(),p=clampPosition(x,y);pet.setPosition(p.x,p.y);savePosition();});
     tickInterval=setInterval(tick,500);saveInterval=setInterval(save,30000);
-    app.on('activate',()=>{showPet();showPanel();});
+    app.on('activate',()=>{showPanel();});
     if(smoke)void smokeTest();
   }).catch(e=>{console.error(e);app.exit(1);});
 }
