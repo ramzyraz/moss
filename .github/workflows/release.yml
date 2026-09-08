@@ -1,0 +1,83 @@
+name: Release Moss
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: moss-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  macos:
+    name: Build and verify Apple Silicon app
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate release source
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const version = require('./package.json').version;
+          const lock = require('./package-lock.json');
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('Use a stable x.y.z version.');
+          if (lock.version !== version || lock.packages[''].version !== version) throw new Error('Lockfile version must match package.json.');
+          if (process.arch !== 'arm64') throw new Error('This release requires an Apple Silicon runner.');
+          if (process.env.EVENT_NAME === 'push' && process.env.RELEASE_TAG !== `v${version}`) throw new Error('Tag must match package.json version.');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          NODE
+          git merge-base --is-ancestor HEAD origin/main
+      - run: npm ci
+      - run: npm test
+      - run: npm run package
+      - name: Test the packaged app
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: '"release/$VERSION/Moss-darwin-arm64/Moss.app/Contents/MacOS/Moss" --smoke-test'
+      - name: Archive and checksum
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd "release/$VERSION"
+          ditto -c -k --sequesterRsrc --keepParent Moss-darwin-arm64/Moss.app "Moss-$VERSION-macOS-arm64.zip"
+          shasum -a 256 "Moss-$VERSION-macOS-arm64.zip" > SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+      - name: Publish GitHub release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            "release/$VERSION/Moss-$VERSION-macOS-arm64.zip" \
+            "release/$VERSION/SHA256SUMS.txt" \
+            --verify-tag --title "Moss $RELEASE_TAG" \
+            --notes-file .github/release-notes.md --generate-notes
+      - name: Build summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          echo "Moss $VERSION: tests, packaged app check, ZIP and checksum passed." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            echo 'Manual verification only: no release was published.' >> "$GITHUB_STEP_SUMMARY"
+          fi
