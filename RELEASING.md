@@ -33,3 +33,7 @@ Open Actions → Release Moss → Run workflow → select `main`. This runs the 
 Standard GitHub-hosted runner usage is free for public repositories, including the `macos-15` runner used here. Larger runners and private-repository billing differ. This workflow uses no larger runners or paid services.
 
 Builds remain unsigned and not notarized. Apple Developer ID signing/notarization requires a separate owner-controlled setup. Never commit signing credentials. Manually check the garden, pause/resume, compact/full controls, and desktop visibility before a release intended for others; automated native checks are not a substitute for all manual behavior checks.
+
+## Windows previews
+
+Run the **Windows preview** workflow manually on `main`. It builds a portable x64 bundle, runs unit and packaged native tests, and saves a ZIP/checksum artifact for three days. After verifying the run, download `windows-preview` and attach its files to an owner-created GitHub prerelease. Use a tag such as `v0.2.2-windows-preview.1`; Windows preview tags do not trigger the Mac release job. Keep the existing Mac stable release marked latest. No code-signing is configured for Windows yet.

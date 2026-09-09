@@ -10,6 +10,7 @@ import type { Command } from './shared/types';
 
 const smoke=process.argv.includes('--smoke-test');
 app.setName('Moss');
+if(process.platform==='win32')app.setAppUserModelId('dev.moss.focus');
 if(smoke) app.setPath('userData',fs.mkdtempSync(path.join(os.tmpdir(),'moss-smoke-')));
 let pet:BrowserWindow, panel:BrowserWindow, tray:Tray;
 let clock:number|undefined=smoke?Date.now():undefined;
@@ -26,10 +27,11 @@ function applyVisibility(){
   const enabled=timer.state.preferences.alwaysOnTop;
   pet.setAlwaysOnTop(enabled,'floating');
   if(process.platform==='darwin'){
-    // Do not transform the whole app's activation policy when configuring one pet.
-    pet.setVisibleOnAllWorkspaces(enabled,{visibleOnFullScreen:enabled,skipTransformProcessType:true});
+    // Moss is a regular app: let Electron perform the macOS process transition
+    // required for joining other applications' full-screen Spaces.
+    pet.setVisibleOnAllWorkspaces(enabled,{visibleOnFullScreen:enabled});
     overlay!.configure(pet.getNativeWindowHandle(),enabled);
-  }else pet.setVisibleOnAllWorkspaces(enabled);
+  }else if(process.platform==='linux')pet.setVisibleOnAllWorkspaces(enabled);
 }
 function save(){try{store.save(timer.checkpoint());if(notice?.startsWith('Could not save'))notice=null;}catch{notice='Could not save progress. Keep Moss open and check available disk space.';}}
 function snapshot(){return {...timer.snapshot(notice??store.notice),compact:!panel?.isVisible()};}
@@ -98,7 +100,7 @@ async function createWindows(){
   const pos=timer.state.position??{x:area.x+area.width-260,y:area.y+area.height-285};
   const bounded=clampPosition(pos.x,pos.y);
   const webPreferences={preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false,autoplayPolicy:'no-user-gesture-required' as const};
-  pet=new BrowserWindow({width:240,height:270,...bounded,focusable:false,acceptFirstMouse:true,transparent:true,backgroundColor:'#00000000',frame:false,hasShadow:false,resizable:false,maximizable:false,minimizable:false,fullscreenable:false,skipTaskbar:true,alwaysOnTop:timer.state.preferences.alwaysOnTop,show:false,title:'Moss companion',webPreferences});
+  pet=new BrowserWindow({width:240,height:270,...bounded,focusable:false,acceptFirstMouse:true,transparent:true,backgroundColor:'#00000000',frame:false,thickFrame:false,hasShadow:false,resizable:false,maximizable:false,minimizable:false,fullscreenable:false,skipTaskbar:true,alwaysOnTop:timer.state.preferences.alwaysOnTop,show:false,title:'Moss companion',webPreferences});
   applyVisibility();
   panel=new BrowserWindow({width:400,height:Math.min(790,area.height-30),minWidth:360,minHeight:540,frame:false,transparent:false,backgroundColor:'#17211e',resizable:true,show:false,title:'Moss · Focus companion',webPreferences});
   panel.on('show',()=>{if(panel.isVisible()){pet.hide();emit();refreshTray();}});
@@ -112,11 +114,13 @@ async function createWindows(){
     w.webContents.on('will-attach-webview',e=>e.preventDefault());
     w.webContents.on('render-process-gone',()=>{notice='The companion display stopped. Reopen Moss to restore your saved session.';save();});
   }
+  if(process.platform==='win32'){pet.setMenu(null);panel.setMenu(null);}
   registerIPC();
   await Promise.all([pet.loadFile(page,{query:{view:'pet'}}),panel.loadFile(page,{query:{view:'panel'}})]);
   showPanel();
   tray=new Tray(icon());tray.on('click',()=>showPanel());refreshTray();
   Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'Moss',submenu:[{label:'Show creature',click:showPet},{label:'Open focus controls',click:showPanel},{type:'separator'},{role:'quit'}]},{role:'editMenu'},{label:'View',submenu:[{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'}]}]));
+  if(process.platform==='win32')Menu.setApplicationMenu(null);
 }
 async function smokeTest(){
   const out=path.join(app.isPackaged?app.getPath('userData'):app.getAppPath(),'artifacts');fs.mkdirSync(out,{recursive:true});
@@ -198,7 +202,7 @@ async function smokeTest(){
     if(overlay){const flags=overlay.inspect(pet.getNativeWindowHandle());assert.equal(flags.allSpaces,false);assert.equal(flags.fullScreenAuxiliary,false);assert.equal(flags.joinsOtherApps,false);}
     assert.equal(store.load().preferences.alwaysOnTop,false);
     await js('document.querySelector("#pinned").click()');await waitFor('document.querySelector("#pinned").checked');
-    assert.equal(pet.isAlwaysOnTop(),true);assert.equal(pet.isVisibleOnAllWorkspaces(),true);
+    assert.equal(pet.isAlwaysOnTop(),true);assert.equal(pet.isVisibleOnAllWorkspaces(),process.platform!=='win32');
     if(overlay){const flags=overlay.inspect(pet.getNativeWindowHandle());assert.equal(flags.fullScreenAuxiliary,true);if(flags.stageManagerSupported)assert.equal(flags.joinsOtherApps,true);}
     assert.equal(store.load().preferences.alwaysOnTop,true);
     // Invalid durations are covered by timer unit tests without an expected Electron IPC error log.

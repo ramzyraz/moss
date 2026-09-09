@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   macos:
+    if: "!contains(github.ref_name, '-windows-preview.')"
     name: Build and verify Apple Silicon app
     runs-on: macos-15
     timeout-minutes: 20

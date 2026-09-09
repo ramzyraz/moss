@@ -1,0 +1,44 @@
+name: Windows preview
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run package:windows
+      - name: Test packaged Windows app
+        timeout-minutes: 3
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $exe = (Resolve-Path "release/$version/Moss-win32-x64/Moss.exe").Path
+          $process = Start-Process -FilePath $exe -ArgumentList '--smoke-test' -Wait -PassThru -RedirectStandardOutput 'windows-smoke.log' -RedirectStandardError 'windows-smoke-errors.log'
+          Get-Content windows-smoke.log
+          Get-Content windows-smoke-errors.log
+          if ($process.ExitCode -ne 0) { throw "Native test failed: $($process.ExitCode)" }
+          if (-not (Select-String -Path windows-smoke.log -Pattern 'MOSS_SMOKE_PASSED' -Quiet)) { throw 'Native test did not finish' }
+      - name: Create portable ZIP
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $name = "Moss-$version-Windows-x64-preview.zip"
+          Compress-Archive -Path "release/$version/Moss-win32-x64" -DestinationPath "release-assets/$name"
+          $hash = (Get-FileHash "release-assets/$name" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Set-Content -Encoding ascii release-assets/SHA256SUMS-Windows.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: windows-preview
+          path: release-assets/*
+          retention-days: 3
+          compression-level: 0

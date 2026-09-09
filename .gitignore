@@ -4,3 +4,5 @@ release/
 artifacts/
 *.tsbuildinfo
 .DS_Store
+
+recordings/
