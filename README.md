@@ -67,6 +67,14 @@ The smoke test starts real Electron windows, drives the renderer controls, advan
 
 The character uses four illustrated poses with CSS movement, not a full frame-by-frame animation set. OS reduced-motion preferences disable movement. Source and artwork provenance: [ARTWORK.md](ARTWORK.md).
 
+## Windows preview
+
+A portable Windows x64 preview can be built with `npm ci` then `npm run package:windows` on Windows. Apple Command Line Tools are not needed there. Extract the entire release ZIP and open `Moss-win32-x64/Moss.exe`; keep the other files beside it. Do not run the executable from inside the ZIP or copy the executable alone.
+
+The preview is unsigned, so Windows may show an unrecognized-app warning. Review it before deciding whether to run it. Always-on-top applies to ordinary windows on the current Windows desktop. Virtual-desktop following and exclusive full-screen applications are not supported in this preview. Progress is stored under `%APPDATA%/Moss/progress.json`. Close controls to return to the companion; use Little preferences → Quit Moss to exit.
+
+Please test dragging, click-through, compact/full controls, focus/breaks, sleep/resume, reopening saved progress, and 100%/150% display scaling. Automated tests do not replace checks on your own Windows desktop.
+
 ## Visibility update (0.1.1)
 
 The creature uses a non-focusable floating window, so it does not need to take focus from the app you are working in. The saved `alwaysOnTop` preference now controls window level, all-desktop visibility, and full-screen/Stage Manager membership together. Normal focus controls remain a regular window. This does not duplicate Moss across physical monitors; it stays on the monitor where you positioned it.
@@ -92,11 +100,3 @@ Full controls and the floating garden now appear one at a time. Close or minimiz
 ## Contributions
 
 Bug reports and focused pull requests are welcome. Branch changes and official releases are owner-controlled. Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change and [RELEASING.md](RELEASING.md) for the release process.
-
-## Windows preview
-
-A portable Windows x64 preview can be built with `npm ci` then `npm run package:windows` on Windows. Apple Command Line Tools are not needed there. Extract the entire release ZIP and open `Moss-win32-x64/Moss.exe`; keep the other files beside it. Do not run the executable from inside the ZIP or copy the executable alone.
-
-The preview is unsigned, so Windows may show an unrecognized-app warning. Review it before deciding whether to run it. Always-on-top applies to ordinary windows on the current Windows desktop. Virtual-desktop following and exclusive full-screen applications are not supported in this preview. Progress is stored under `%APPDATA%/Moss/progress.json`. Close controls to return to the companion; use Little preferences → Quit Moss to exit.
-
-Please test dragging, click-through, compact/full controls, focus/breaks, sleep/resume, reopening saved progress, and 100%/150% display scaling. Automated tests do not replace checks on your own Windows desktop.
