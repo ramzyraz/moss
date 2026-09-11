@@ -21,10 +21,10 @@ To produce a standalone macOS app:
 
 ```sh
 npm run package
-open release/0.2.1/Moss-darwin-arm64/Moss.app
+open release/0.4.0/Moss-darwin-arm64/Moss.app
 ```
 
-The local build is unsigned and not notarized. Distribution to other Macs needs a signing/notarization workflow. Windows, Linux, and Intel Mac builds have not been validated.
+The local build is unsigned and not notarized. Distribution to other Macs needs a signing/notarization workflow. Windows x64 is available as a separate preview with automated native checks. Linux and Intel Mac builds have not been validated.
 
 ## Meet your companion
 
@@ -68,6 +68,8 @@ The smoke test starts real Electron windows, drives the renderer controls, advan
 The character uses four illustrated poses with CSS movement, not a full frame-by-frame animation set. OS reduced-motion preferences disable movement. Source and artwork provenance: [ARTWORK.md](ARTWORK.md).
 
 ## Windows preview
+
+Download the [0.4.0 Windows x64 preview](https://github.com/ramzyraz/moss/releases/tag/v0.4.0-windows-preview.1). Earlier Mac and Windows versions are available in [all releases](https://github.com/ramzyraz/moss/releases).
 
 A portable Windows x64 preview can be built with `npm ci` then `npm run package:windows` on Windows. Apple Command Line Tools are not needed there. Extract the entire release ZIP and open `Moss-win32-x64/Moss.exe`; keep the other files beside it. Do not run the executable from inside the ZIP or copy the executable alone.
 
