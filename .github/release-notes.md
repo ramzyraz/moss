@@ -9,7 +9,7 @@
 
 ## Download
 
-Download the **macOS-arm64.zip**, extract it, and move **Moss.app** to Applications. Quit any older Moss version first. This build supports **macOS on Apple Silicon (M-series)**; Intel Macs and Linux are not supported by this download. Windows is distributed separately as a preview.
+Download the **macOS-arm64.zip**, extract it, and move **Moss.app** to Applications. Quit any older Moss version first. This build supports **macOS on Apple Silicon (M-series)**; Intel Macs and Linux are not supported by this download. Windows preview downloads, when available, appear alongside the Mac download in this release.
 
 **Unsigned and not notarized:** macOS may block this prototype. Review the app in System Settings → Privacy & Security if you choose to open it. Do not disable system-wide security protections. `SHA256SUMS.txt` verifies download integrity; it is not a code signature.
 
