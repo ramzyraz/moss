@@ -17,7 +17,7 @@ let clock:number|undefined=smoke?Date.now():undefined;
 let timer:FocusTimer,store:StateStore;
 let notice:string|null=null, quitting=false;
 let drag:ReturnType<typeof setInterval>|null=null;
-const page=path.join(__dirname,'renderer/index.html');
+const page=path.join(__dirname,'browser/renderer/index.html');
 const pageURL=pathToFileURL(page).href;
 let tickInterval:ReturnType<typeof setInterval>|undefined;
 let saveInterval:ReturnType<typeof setInterval>|undefined;
@@ -123,6 +123,8 @@ async function createWindows(){
   if(process.platform==='win32')Menu.setApplicationMenu(null);
 }
 async function smokeTest(){
+  assert.ok(smoke && path.basename(app.getPath('userData')).startsWith('moss-smoke-'));
+  assert.equal(store.file,path.join(app.getPath('userData'),'progress.json'));
   const out=path.join(app.isPackaged?app.getPath('userData'):app.getAppPath(),'artifacts');fs.mkdirSync(out,{recursive:true});
   const js=(s:string)=>panel.webContents.executeJavaScript(s);
   const waitFor=async(expression:string)=>{for(let i=0;i<100;i++){if(await js(expression))return;await new Promise(r=>setTimeout(r,30));}throw new Error(`UI condition failed: ${expression}`);};
@@ -139,9 +141,11 @@ async function smokeTest(){
       assert.equal(flags.hidesOnDeactivate,false);assert.equal(pet.isFocusable(),false);
       if(flags.stageManagerSupported)assert.equal(flags.joinsOtherApps,true);
     }
+    await js('document.querySelector("[data-seed=sunflower]").click()');
+    await waitFor('document.querySelector("[data-seed=sunflower]").getAttribute("aria-pressed") === "true"');
     const isolated=await js('({node:typeof require,api:typeof window.moss.command})');assert.equal(isolated.node,'undefined');assert.equal(isolated.api,'function');
-    await js('document.querySelector("#intention").value="Write the first chapter";document.querySelector("#start").click()');
-    await waitFor('document.body.dataset.status === "running"');assert.equal(timer.state.session.label,'Write the first chapter');
+    await js('document.querySelector("#minutes").value="7";document.querySelector("#minutes").dispatchEvent(new Event("input"));document.querySelector("#intention").value="Write the first chapter";document.querySelector("#start").click()');
+    await waitFor('document.body.dataset.status === "running"');assert.equal(timer.state.session.label,'Write the first chapter');assert.equal(timer.state.session.durationMs,7*60000);
     const deadlineBeforeCompact=timer.state.session.deadline;
     await js('document.querySelector("#minimize").click()');
     await waitFor('window.moss.getState().then(s=>s.compact)');
@@ -180,6 +184,11 @@ async function smokeTest(){
     clock!+=timer.remaining()+1;tick();await waitFor('document.body.dataset.status === "completed"');assert.equal(timer.state.totalSessions,1);
     tick();assert.equal(timer.state.totalSessions,1);
     const loaded=store.load();assert.equal(loaded.totalSessions,1);
+    assert.equal(loaded.cultivation?.species['0'],'sunflower');
+    await js('document.querySelector("#arrange-garden").click();document.querySelectorAll("[data-plot]")[0].click();document.querySelectorAll("[data-plot]")[5].click()');
+    await waitFor('window.moss.getState().then(s=>s.cultivation.positions["0"] === 5)');
+    assert.equal(store.load().cultivation?.positions['0'],5);
+    await js('document.querySelector("#arrange-garden").click()');
     await new Promise(r=>setTimeout(r,150));
     fs.writeFileSync(path.join(out,'moss-completed.png'),(await panel.webContents.capturePage()).toPNG());
     fs.writeFileSync(path.join(out,'moss-pet.png'),(await pet.webContents.capturePage()).toPNG());

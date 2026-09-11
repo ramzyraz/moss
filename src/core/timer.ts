@@ -1,3 +1,4 @@
+import { freshCultivation, seedKinds, plantAt, movePlant } from '../shared/garden';
 import type { Command, SavedState, Session, Snapshot } from '../shared/types';
 const MINUTE = 60000;
 export function dayKey(now: number): string {
@@ -12,6 +13,7 @@ export class FocusTimer {
   public state: SavedState;
   constructor(state: SavedState = freshState(), private now: () => number = Date.now) {
     this.state = structuredClone(state);
+    this.state.cultivation ??= freshCultivation();
     // Offline time never silently turns into earned focus time.
     if (this.state.session.status === 'running') {
       this.state.session.status = 'paused'; this.state.session.deadline = null;
@@ -27,6 +29,10 @@ export class FocusTimer {
     if(s.status!=='running' || this.remaining()>0) return false;
     s.status='completed'; s.remainingMs=0; s.deadline=null; s.pauseReason=null;
     if(s.phase==='focus' && !s.demo) {
+      const c=this.state.cultivation!,id=this.state.totalSessions;
+      let slot=0;while(plantAt(id,c,slot)!==null)slot++;
+      if(c.activeSeed!=='classic')c.species[String(id)]=c.activeSeed;
+      if(slot!==id)c.positions[String(id)]=slot;
       this.state.totalSessions++;
       this.state.totalMinutes+=s.durationMs/MINUTE;
       const now=this.now();
@@ -42,12 +48,18 @@ export class FocusTimer {
     s.remainingMs=this.remaining(); s.status='paused'; s.deadline=null; s.pauseReason=reason;
   }
   private start(phase:'focus'|'break',durationMs:number,label:string,demo:boolean): void {
+    if(phase==='focus')this.state.cultivation!.activeSeed=this.state.cultivation!.selectedSeed;
     this.state.session={phase,status:'running',durationMs,remainingMs:durationMs,deadline:this.now()+durationMs,label,demo,pauseReason:null};
   }
   dispatch(command:Command): void {
     this.tick();
     const s=this.state.session;
     switch(command.type) {
+      case 'seed':
+        if(s.status==='running'||s.status==='paused')throw new Error('Choose your next seed after this session.');
+        if(!seedKinds.includes(command.seed))throw new Error('Choose daisy, sunflower, or lavender.');
+        this.state.cultivation!.selectedSeed=command.seed;break;
+      case 'movePlant':movePlant(this.state.totalSessions,this.state.cultivation!,command.plant,command.to);break;
       case 'start':
         if(s.status==='running'||s.status==='paused') throw new Error('End the current session before starting another.');
         if(!Number.isInteger(command.minutes)||command.minutes<1||command.minutes>120) throw new Error('Choose 1–120 whole minutes.');

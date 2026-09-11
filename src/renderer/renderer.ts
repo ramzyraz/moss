@@ -1,4 +1,5 @@
-import type { MossAPI, Snapshot, Command } from '../shared/types';
+import { seedKinds, seedNames, plantAt, plotCount, freshCultivation } from '../shared/garden.js';
+import type { PlantKind, MossAPI, Snapshot, Command } from '../shared/types';
 declare global { interface Window { moss: MossAPI } }
 const api=window.moss;
 const isPet=new URLSearchParams(location.search).get('view')==='pet';
@@ -7,10 +8,21 @@ const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(
 const app=$('app');
 const leaf='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4C9 3 4 7 5 13c1 6 10 7 13 0 1-3 1-6 1-9Z"/><path d="M5 21 15 10"/></svg>';
 // Code-drawn garden assets stay crisp at desktop-avatar size.
-function plant(stage:number,index=0){return `<svg viewBox="0 0 64 72" aria-hidden="true" class="plant-art"><path fill="#443128" d="M7 62h50v6H7z"/><path fill="#896047" d="M12 59h40v5H12z"/>${stage===0?'<path fill="#e4c185" d="M29 55h7v5h-7z"/>':`<path stroke="#8cb86b" stroke-width="5" fill="none" d="M32 60V${stage===1?43:24}"/><path fill="#9dca78" d="M31 51H20V40h5v5h7zm3-9h11V31h-6v5h-5z"/>${stage>=2?`<path fill="${stage===2?'#bbd88a':['#efb0c3','#f1d180','#bcb0ef'][index%3]}" d="M25 13h14v7h7v14h-7v7H25v-7h-7V20h7z"/><path fill="#f8e7a1" d="M28 23h8v9h-8z"/>`:''}`}</svg>`;}
+function plant(stage:number,kind:PlantKind='classic',index=0){
+  const stem=kind==='sunflower'?20:kind==='lavender'?24:30;
+  const sprout=kind==='lavender'?'<path fill="#8eae80" d="M30 49 23 37h5l5 9 5-15h4l-6 19z"/>':'<path fill="#9dca78" d="M31 51H20V40h5v5h7zm3-9h11V31h-6v5h-5z"/>';
+  let head='';
+  if(stage===2)head=kind==='lavender'?'<path fill="#8d9b7a" d="M28 18h8v19h-8z"/>':`<path fill="#bbd88a" d="M26 ${stem-7}h12v14H26z"/>`;
+  if(stage===3){
+    if(kind==='sunflower')head='<path fill="#f2c558" d="M25 4h14v8h9v17h-9v8H25v-8h-9V12h9z"/><path fill="#79502e" d="M25 14h14v14H25z"/><path fill="#ae8245" d="M28 17h4v4h-4zM33 23h3v3h-3z"/>';
+    else if(kind==='lavender')head='<path stroke="#829566" stroke-width="3" d="M25 47V26m14 22V23"/><path fill="#b9a0df" d="M29 8h6v7h-6zm-3 9h12v6H26zm2 8h9v6h-9zM21 25h7v7h-7zm-2 9h10v6H19zm17-14h7v6h-7zm-1 9h10v6H35z"/>';
+    else head=`<path fill="${kind==='daisy'?'#fff0cf':['#efb0c3','#f1d180','#bcb0ef'][index%3]}" d="M25 13h14v7h7v14h-7v7H25v-7h-7V20h7z"/><path fill="#edbe53" d="M28 23h8v9h-8z"/>`;
+  }
+  return `<svg viewBox="0 0 64 72" aria-hidden="true" class="plant-art" data-kind="${kind}"><path fill="#443128" d="M7 62h50v6H7z"/><path fill="#896047" d="M12 59h40v5H12z"/>${stage===0?`<path fill="${kind==='sunflower'?'#b09365':kind==='lavender'?'#c1acd5':'#e4c185'}" d="M29 55h7v5h-7z"/>`:`<path stroke="#8cb86b" stroke-width="${kind==='lavender'?3:5}" fill="none" d="M32 60V${stage===1?43:stem}"/>${sprout}${head}`}</svg>`;
+}
 const toolsArt=`<span class="gardening-arm" aria-hidden="true"></span><span class="garden-spade" aria-hidden="true"><svg viewBox="0 0 20 48"><path stroke="#bb9665" stroke-width="6" d="M10 4v27"/><path fill="#a7b9ae" stroke="#52675c" stroke-width="2" d="M3 25h14v13l-7 8-7-8z"/></svg></span><span class="garden-tool" aria-hidden="true"><svg viewBox="0 0 60 48"><path fill="none" stroke="#9fc5b1" stroke-width="5" d="M14 21V9h19v12"/><path fill="#719d96" d="M8 18h28v24H8zM34 24l17-12 5 7-20 19z"/><path fill="#c2d7bb" d="M49 11h9v10h-9z"/></svg></span><span class="water-drops" aria-hidden="true"><i></i><i></i><i></i></span><span class="planting-seed" aria-hidden="true"></span>`;
 const patch=`<span class="garden-soil"></span><span class="current-plant">${plant(0)}</span>${toolsArt}`;
-let lastPlant='',gardenPage=0,lastGarden='';
+let lastPlant='',gardenPage=0,lastGarden='',arranging=false,selectedPlant:number|null=null;
 app.innerHTML=isPet?`
   <div class="pet-surface">
     <button class="pet-hit interactive" id="pet-open" aria-label="Open Moss focus controls. Drag to move.">${patch}<span class="creature" role="img" aria-label="Moss, your leaf-eared focus companion"></span></button>
@@ -24,12 +36,12 @@ app.innerHTML=isPet?`
       <div class="timer-line"><span class="timer" id="time">25:00</span><span class="timer-caption" id="timer-caption">of quiet focus</span></div>
       <div class="session-track" role="progressbar" id="session-progress" aria-label="Session progress" aria-valuemin="0" aria-valuemax="100"><span id="session-fill"></span></div>
       <p id="active-intention" class="active-intention" hidden></p>
-      <div id="idle-controls"><label class="input-label" for="intention">What are we working on? <span>optional</span></label><input id="intention" type="text" maxlength="80" placeholder="One small thing to move forward…" autocomplete="off"><div class="duration-row"><label for="minutes">Focus time</label><div class="minute-input"><input id="minutes" type="number" min="1" max="120" step="1" value="25" aria-label="Focus minutes"><span>min</span></div><div class="presets" aria-label="Focus duration presets"><button data-minutes="15">15</button><button data-minutes="25" aria-pressed="true">25</button><button data-minutes="50">50</button></div></div><button class="primary" id="start">Let’s focus <span>↗</span></button></div>
+      <div id="idle-controls"><label class="input-label" for="intention">What are we working on? <span>optional</span></label><input id="intention" type="text" maxlength="80" placeholder="One small thing to move forward…" autocomplete="off"><div class="duration-row"><label for="minutes">Focus time</label><div class="minute-input"><input id="minutes" type="number" min="1" max="120" step="1" value="25" aria-label="Focus minutes" aria-describedby="duration-help"><span>min</span></div><div class="presets" aria-label="Focus duration presets"><button data-minutes="15">15</button><button data-minutes="25" aria-pressed="true">25</button><button data-minutes="50">50</button></div></div><p id="duration-help" class="duration-help">Type any duration from 1 to 120 minutes above.</p><fieldset class="seed-picker"><legend>What shall we grow?</legend><div>${seedKinds.map(kind=>`<button type="button" class="seed-choice" data-seed="${kind}" aria-pressed="false">${plant(3,kind)}<span>${seedNames[kind]}</span></button>`).join('')}</div></fieldset><button class="primary" id="start">Let’s focus <span>↗</span></button></div>
       <div id="active-controls" hidden><button class="primary" id="pause">Pause a moment <span>Ⅱ</span></button><button class="primary" id="resume" hidden>Pick up where we left off <span>↗</span></button><button class="text-button" id="end">End this session</button></div>
       <div id="complete-controls" hidden><button class="primary" id="rest">Take a 5-minute break <span>☕</span></button><button class="text-button" id="new-session">Ready for another?</button></div>
       <p class="session-note" id="session-note">Moss will keep you company above your other apps.</p>
     </section>
-    <section class="growth" aria-label="Saved focus progress"><div class="growth-title"><span>${leaf} Your little garden</span><span id="total-count">0 sessions</span></div><div id="saved-garden" class="saved-garden" aria-label="Your permanent flower garden"></div><div class="garden-navigation"><button id="garden-prev" aria-label="Previous garden patch">‹</button><span id="garden-page"></span><button id="garden-next" aria-label="Next garden patch">›</button></div><p id="growth-description">Finish a focus session to keep your first flower.</p><div class="today"><span>Today</span><strong id="today-count">0 sessions · 0 min</strong></div></section>
+    <section class="growth" aria-label="Saved focus progress"><div class="growth-title"><span>${leaf} Your little garden</span><span id="total-count">0 sessions</span></div><button id="arrange-garden" class="arrange-button" aria-pressed="false">Arrange garden</button><p id="arrange-help" class="arrange-help" role="status" hidden></p><div id="saved-garden" class="saved-garden" aria-label="Your permanent flower garden"></div><div class="garden-navigation"><button id="garden-prev" aria-label="Previous garden patch">‹</button><span id="garden-page"></span><button id="garden-next" aria-label="Next garden patch">›</button></div><p id="growth-description">Finish a focus session to keep your first flower.</p><div class="today"><span>Today</span><strong id="today-count">0 sessions · 0 min</strong></div></section>
     <details class="preferences"><summary>Little preferences <span>⌄</span></summary><div class="settings"><label class="switch-row"><span class="switch-copy">Follow me across apps<small id="follow-help">Stay visible on desktops and full-screen apps.</small></span><input aria-describedby="follow-help" id="pinned" type="checkbox" checked role="switch"></label><label class="switch-row"><span>Gentle completion chime</span><input id="sound" type="checkbox" role="switch"></label><label class="break-setting">Break length <select id="break-minutes"><option value="3">3 minutes</option><option value="5" selected>5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option></select></label><div class="settings-actions"><button id="hide" class="text-button">Hide creature</button><button id="quit" class="text-button">Quit Moss</button></div><p>Progress stays on this computer. Sleep pauses your session.</p></div></details>
     <footer><button id="demo" class="demo-button">Try a 20-second demo ↗</button><span>OFFLINE & YOURS</span></footer>
     <p id="error" class="error" role="alert" hidden></p><p id="notice" class="notice" role="status" hidden></p><span id="announcement" class="sr-only" role="status" aria-live="polite"></span>
@@ -53,8 +65,10 @@ function update(s:Snapshot){
   document.body.dataset.stage=String(s.garden.stage);
   document.body.classList.toggle('tending',s.garden.tending);
   if(s.garden.tending)document.body.dataset.pose='idle';
-  const plantKey=String(s.garden.stage);
-  if(plantKey!==lastPlant){document.querySelectorAll('.current-plant').forEach(el=>{el.innerHTML=plant(s.garden.stage);el.setAttribute('aria-label',['Seed in the soil','Growing sprout','Flower bud','Blooming flower'][s.garden.stage]);});lastPlant=plantKey;}
+  const cultivation=s.cultivation??freshCultivation();
+  const kind=a.status==='idle'?cultivation.selectedSeed:cultivation.activeSeed;
+  const plantKey=`${s.garden.stage}:${kind}`;
+  if(plantKey!==lastPlant){document.querySelectorAll('.current-plant').forEach(el=>{el.innerHTML=plant(s.garden.stage,kind);el.setAttribute('aria-label',['Seed in the soil','Growing sprout','Flower bud','Blooming flower'][s.garden.stage]);});lastPlant=plantKey;}
 
   if(isPet){document.body.classList.toggle('avatar-only',!!s.compact);$('pet-time').textContent=a.status==='idle'?'Ready when you are':a.status==='completed'?a.phase==='focus'?'A little more grown ✦':'Break complete':`${a.status==='paused'?'Paused · ':a.demo?'Demo · ':''}${formatTime(a.remainingMs)}`;return;}
   if(navigator.userAgent.includes('Windows'))$('follow-help').textContent='Stay above normal windows on this desktop.';
@@ -73,9 +87,22 @@ function update(s:Snapshot){
   $('session-note').textContent=a.demo?'Demo only. Your saved progress stays the same.':idle?'Moss will keep you company above your other apps.':active?'You can pause anytime. Sleep pauses automatically.':'No rush. Moss is happy to wait.';
   $<HTMLButtonElement>('demo').disabled=active||busy;
   $('total-count').textContent=`${s.totalSessions} ${s.totalSessions===1?'session':'sessions'}`;
-  const pages=Math.max(1,Math.ceil(s.garden.planted/12));gardenPage=Math.min(gardenPage,pages-1);
-  const gardenKey=`${s.garden.planted}:${gardenPage}`;
-  if(gardenKey!==lastGarden){$('saved-garden').innerHTML=Array.from({length:12},(_,i)=>{const n=gardenPage*12+i;return `<span class="garden-slot" title="${n<s.garden.planted?`Flower ${n+1} · completed focus session`:'Room to grow'}">${n<s.garden.planted?plant(3,n):'<span class="empty-soil"></span>'}</span>`;}).join('');lastGarden=gardenKey;}
+  document.querySelectorAll<HTMLButtonElement>('[data-seed]').forEach(el=>{el.setAttribute('aria-pressed',String(el.dataset.seed===cultivation.selectedSeed));el.disabled=active||busy;});
+  const pages=plotCount(s.garden.planted)/12;gardenPage=Math.min(gardenPage,pages-1);
+  const gardenKey=JSON.stringify([s.garden.planted,gardenPage,cultivation.species,cultivation.positions,arranging,selectedPlant]);
+  if(gardenKey!==lastGarden){
+    const focused=(document.activeElement as HTMLElement)?.dataset?.plot;
+    $('saved-garden').innerHTML=Array.from({length:12},(_,i)=>{
+      const slot=gardenPage*12+i,id=plantAt(s.garden.planted,cultivation,slot),species=id===null?'classic':cultivation.species[String(id)]??'classic';
+      const label=id===null?`Empty plot ${slot+1}`:`${seedNames[species]}, plot ${slot+1}`;
+      return `<button class="garden-slot${selectedPlant!==null&&id===selectedPlant?' selected':''}" data-plot="${slot}" aria-label="${label}${arranging?', select to move or swap':''}" aria-pressed="${id!==null&&id===selectedPlant}" title="${label}" ${!arranging?'disabled':''}>${id!==null?plant(3,species,id):'<span class="empty-soil"></span>'}</button>`;
+    }).join('');
+    if(focused!==undefined)$('saved-garden').querySelector<HTMLButtonElement>(`[data-plot="${focused}"]`)?.focus({preventScroll:true});
+    lastGarden=gardenKey;
+  }
+  $('arrange-garden').textContent=arranging?'Done arranging':'Arrange garden';$('arrange-garden').setAttribute('aria-pressed',String(arranging));
+  $<HTMLButtonElement>('arrange-garden').disabled=s.garden.planted===0;
+  $('arrange-help').hidden=!arranging;$('arrange-help').textContent=selectedPlant===null?'Choose a flower to move.':`Choose a destination plot. An occupied plot swaps flowers. Click the selected flower to cancel.`;
   $('garden-page').textContent=s.garden.planted?`Patch ${gardenPage+1} of ${pages} · ${s.garden.planted} ${s.garden.planted===1?'flower':'flowers'}`:'An empty patch. A fresh start.';
   $<HTMLButtonElement>('garden-prev').disabled=gardenPage===0;$<HTMLButtonElement>('garden-next').disabled=gardenPage>=pages-1;
   $('growth-description').textContent=a.demo?'Practice garden · demo flowers aren’t saved.':a.status==='paused'?'Your sprout is safe. Resume whenever you’re ready.':s.garden.tending?['Moss is planting a seed.','A sprout! Moss is keeping it watered.','A bud is forming. Keep it company.','Your flower is ready.'][s.garden.stage]:s.garden.planted?'Every flower is a focus session you completed.':'Finish a focus session to keep your first flower.';
@@ -105,7 +132,16 @@ if(isPet){
   api.pointer(false);
   api.onChime(()=>{try{const audio=new AudioContext();const now=audio.currentTime;[523.25,659.25].forEach((f,i)=>{const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.type='sine';oscillator.frequency.value=f;gain.gain.setValueAtTime(0,now+i*.17);gain.gain.linearRampToValueAtTime(.09,now+i*.17+.02);gain.gain.exponentialRampToValueAtTime(.001,now+i*.17+.5);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(now+i*.17);oscillator.stop(now+i*.17+.5);});setTimeout(()=>void audio.close(),1000);}catch{/* Sound is optional. */}});
 }else{
-  on('garden-prev',()=>{gardenPage--;if(state)update(state);});on('garden-next',()=>{gardenPage++;if(state)update(state);});
+  document.querySelectorAll<HTMLButtonElement>('[data-seed]').forEach(button=>button.addEventListener('click',()=>void send({type:'seed',seed:button.dataset.seed as 'daisy'|'sunflower'|'lavender'})));
+  on('arrange-garden',()=>{arranging=!arranging;selectedPlant=null;if(state)update(state);});
+  $('saved-garden').addEventListener('click',event=>{
+    const button=(event.target as Element).closest<HTMLButtonElement>('[data-plot]');if(!button||!state||!arranging||busy)return;
+    const to=Number(button.dataset.plot),id=plantAt(state.totalSessions,state.cultivation??freshCultivation(),to);
+    if(selectedPlant===null){if(id!==null)selectedPlant=id;update(state);return;}
+    if(selectedPlant===id){selectedPlant=null;update(state);return;}
+    const moving=selectedPlant;selectedPlant=null;void send({type:'movePlant',plant:moving,to});
+  });
+  on('garden-prev' ,()=>{gardenPage--;if(state)update(state);});on('garden-next',()=>{gardenPage++;if(state)update(state);});
   on('minimize',()=>api.hidePanel());on('close',()=>api.hidePanel());on('hide',()=>api.hidePet());on('quit',()=>api.quit());
   on('start',()=>void send({type:'start',minutes:minutesInput(),label:$<HTMLInputElement>('intention').value}));
   on('pause',()=>void send({type:'pause'}));on('resume',()=>void send({type:'resume'}));

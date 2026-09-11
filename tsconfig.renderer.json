@@ -1,1 +1,20 @@
-{"compilerOptions":{"target":"ES2022","module":"ES2022","moduleResolution":"Bundler","strict":true,"skipLibCheck":true,"rootDir":"src","outDir":"dist","lib":["ES2022","DOM"],"types":[]},"include":["src/renderer/**/*.ts","src/shared/**/*.ts"]}
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "rootDir": "src",
+    "outDir": "dist/browser",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "types": []
+  },
+  "include": [
+    "src/renderer/**/*.ts",
+    "src/shared/**/*.ts"
+  ]
+}
