@@ -1,12 +1,12 @@
 {
   "name": "moss-focus",
   "productName": "Moss",
-  "version": "0.2.2",
+  "version": "0.4.0",
   "description": "A small desktop creature that keeps you company while you focus.",
   "private": true,
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-assets.cjs && node scripts/build-native.cjs",
+    "build": "node scripts/clean-build.cjs && tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && node scripts/copy-assets.cjs && node scripts/build-native.cjs",
     "start": "npm run build && electron .",
     "test": "npm run build && node --test tests/*.test.cjs",
     "smoke": "npm run build && electron . --smoke-test",

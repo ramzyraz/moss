@@ -1,3 +1,5 @@
+import { validDecorations } from '../shared/living';
+import { validCultivation } from '../shared/garden';
 import fs from 'node:fs';
 import path from 'node:path';
 import { freshState } from './timer';
@@ -7,7 +9,7 @@ const integer=(x:unknown,min:number,max:number)=>finite(x)&&Number.isInteger(x)&
 export function validState(value:unknown):value is SavedState {
   if(!value||typeof value!=='object') return false;
   const v=value as SavedState,s=v.session,p=v.preferences;
-  return v.version===1 && !!s && !!p && ['focus','break'].includes(s.phase) && ['idle','running','paused','completed'].includes(s.status)
+  return validDecorations(v) && (v.cultivation===undefined||validCultivation(v.cultivation,v.totalSessions)) && v.version===1 && !!s && !!p && ['focus','break'].includes(s.phase) && ['idle','running','paused','completed'].includes(s.status)
     && finite(s.durationMs)&&s.durationMs>0&&s.durationMs<=7200000
     && finite(s.remainingMs)&&s.remainingMs>=0&&s.remainingMs<=s.durationMs
     && (s.deadline===null||finite(s.deadline)) && typeof s.label==='string'&&s.label.length<=80 && typeof s.demo==='boolean'

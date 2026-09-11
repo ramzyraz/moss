@@ -89,7 +89,7 @@ Click **−** in the controls title bar to leave only the animated avatar. Click
 
 Moss plants and waters a flower during focus. Four stages follow active session time: seed (0–25%), sprout (25–65%), bud (65–100%), and bloom on completion. Pausing, sleeping, or quitting preserves checkpointed growth; offline time does not grow plants. Ending an unfinished session discards that session’s plant, with no change to earned flowers.
 
-Each completed focus session adds one permanent flower. The garden is reconstructed from the saved lifetime session count, so existing sessions become flowers automatically and history trimming cannot remove flowers. Patches hold 12 flowers; arrow controls browse every patch. Colors alternate deterministically. Breaks and the 20-second demo never add flowers. Compact mode shows Moss and the active planting patch; click it to open the saved garden and controls.
+Each completed focus session adds one permanent flower. The garden is reconstructed from the saved lifetime session count, so existing sessions become flowers automatically and history trimming cannot remove flowers. Patches hold 12 flowers; arrow controls browse every patch. Choose daisy, sunflower, or lavender before starting a session. Each seed has its own growth artwork and becomes a permanent flower on completion. Existing flowers keep their original colors. Select **Arrange garden**, choose a flower, then choose a destination plot; occupied plots swap flowers. Seed choices and flower positions are saved locally. Breaks and the 20-second demo never add flowers. Compact mode shows Moss and the active planting patch; click it to open the saved garden and controls.
 
 Garden art is original SVG/CSS with planting, tending, and watering motion, using the existing Moss character artwork. Reduced-motion settings disable animation while retaining visible growth stages. This first release has one flower species; houses, vegetables, and decorations are not implemented.
 
@@ -100,3 +100,11 @@ Full controls and the floating garden now appear one at a time. Close or minimiz
 ## Contributions
 
 Bug reports and focused pull requests are welcome. Branch changes and official releases are owner-controlled. Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change and [RELEASING.md](RELEASING.md) for the release process.
+
+### Simple and Living garden
+
+In **Little preferences → Garden style**, choose **Simple** (the default) or **Living garden**. Both share your flowers, focus history, and saved progress. Compact mode stays the same in either style.
+
+During focus in Living garden, a small Moss walks between flowers on the visible patch, waters them, pulls a little weed, and rests. Pausing, taking a break, arranging flowers, or enabling reduced motion rests the gardener. Nothing withers or disappears.
+
+Completed sessions unlock a lantern (3), bench (5), pond (10), and tiny cottage (20); existing sessions count. Select an unlocked decoration and then one of the four decoration spots beside the flowers. Selecting a placed decoration lets you move or put it away. Moving onto another decoration swaps them; placing an item from the shelf returns the previous occupant to the shelf. These four spots are shared across garden patches. Simple mode hides decorations without losing their positions.
